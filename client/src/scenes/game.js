@@ -10,7 +10,7 @@ const GRAVEYARD = 5;
 export default class Game extends Phaser.Scene {
     constructor() {
         super({
-            key: "Gamse",
+            key: "Game",
         });
     }
     preload() {
