@@ -10,7 +10,7 @@ const GRAVEYARD = 5;
 export default class Game extends Phaser.Scene {
     constructor() {
         super({
-            key: "Game",
+            key: "Gamse",
         });
     }
     preload() {
@@ -83,6 +83,10 @@ export default class Game extends Phaser.Scene {
             GameObject.y = dragY;
             self.socket.send(JSON.stringify({ event: "drag", x: GameObject.x, y: GameObject.y, uniqueID: GameObject.getData("uniqueID") }));
         });
+
+        /*this.input.on("pointerdown", function(pointer,GameObject)){
+            if(GameObject.getData())
+        }*/
         /*this.input.on("drop", function (pointer, GameObject, dropped) {
             if(!dropped){
                 GameObject.x =
