@@ -36,6 +36,20 @@ export default class Game extends Phaser.Scene {
         this.dealText.on("pointerdown", function () {
             self.socket.send(JSON.stringify({ event: "drawCard", id: self.id }));
         });
+
+        this.MANA_ZONE = this.add.zone(197.5, 920, 395, 320).setRectangleDropZone(395, 320).setInteractive();
+        this.graphics = this.add.graphics();
+        this.graphics.lineStyle(2, 0xffff00);
+        this.graphics.strokeRect(
+            this.MANA_ZONE.x - this.MANA_ZONE.input.hitArea.width / 2,
+            this.MANA_ZONE.y - this.MANA_ZONE.input.hitArea.height / 2,
+            this.MANA_ZONE.input.hitArea.width,
+            this.MANA_ZONE.input.hitArea.height
+        );
+
+        this.MANA_ZONE.on("pointerdown", function () {
+            console.log(this === this.MANA_ZONE);
+        });
         //let self = this;
         //this.add.image(0, 0, "bg").setOrigin(0, 0); //setting background image
         /*this.zone = new Zone(this);
@@ -54,6 +68,7 @@ export default class Game extends Phaser.Scene {
 
         this.DECK_ZONE = this.zone.renderZone(1625, 920, 200, 320);
         this.outline = this.zone.renderOutline(this.DECK_ZONE);
+        
 
         this.DEAD_ZONE = this.zone.renderZone(1822.5, 920, 195, 320);
         this.outline = this.zone.renderOutline(this.DEAD_ZONE);*/
@@ -61,6 +76,7 @@ export default class Game extends Phaser.Scene {
             this.tempDepth = GameObject.depth;
             self.socket.send(JSON.stringify({ event: "dragStart", uniqueID: GameObject.getData("uniqueID") }));
         });
+
         this.input.on("dragend", function (pointer, GameObject, dropped) {
             self.socket.send(
                 JSON.stringify({
@@ -111,9 +127,9 @@ export default class Game extends Phaser.Scene {
                             .setDisplaySize(130, 180)
                             .setSize(130, 180);
                         this.input.setDraggable(card);
-                        if (data.p1deck[DECK][i].location === "deck") {
+                        /*if (data.p1deck[DECK][i].location === "deck") {
                             card.setTexture("cardBack").setDisplaySize(130, 180).setSize(130, 180);
-                        }
+                        }*/
                         card.setData({ id: data.p1deck[DECK][i].id, uniqueID: data.p1deck[DECK][i].uniqueID });
                         card.setDepth(data.p1deck[DECK][i].id);
                         this.playerDeck.push(card);
@@ -126,9 +142,9 @@ export default class Game extends Phaser.Scene {
                             .setSize(130, 180);
                         //this.input.setDraggable(card);
                         card.setData({ id: data.p2deck[DECK][i].id, uniqueID: data.p2deck[DECK][i].uniqueID });
-                        if (data.p2deck[DECK][i].location === "deck") {
+                        /* if (data.p2deck[DECK][i].location === "deck") {
                             card.setTexture("cardBack").setDisplaySize(130, 180).setSize(130, 180);
-                        }
+                        }*/
                         card.setDepth(data.p2deck[DECK][i].id);
                         card.setAngle(180);
                         this.opponentDeck.push(card);
@@ -142,9 +158,9 @@ export default class Game extends Phaser.Scene {
                             .setSize(130, 180);
                         //this.input.setDraggable(card);
                         card.setData({ id: data.p1deck[DECK][i].id, uniqueID: data.p1deck[DECK][i].uniqueID });
-                        if (data.p1deck[DECK][i].location === "deck") {
+                        /* if (data.p1deck[DECK][i].location === "deck") {
                             card.setTexture("cardBack").setDisplaySize(130, 180).setSize(130, 180);
-                        }
+                        }*/
                         card.setDepth(data.p1deck[DECK][i].id);
                         card.setAngle(180);
                         this.opponentDeck.push(card);
@@ -157,9 +173,9 @@ export default class Game extends Phaser.Scene {
                             .setSize(130, 180);
                         this.input.setDraggable(card);
                         card.setData({ id: data.p2deck[DECK][i].id, uniqueID: data.p1deck[DECK][i].uniqueID });
-                        if (data.p2deck[DECK][i].location === "deck") {
+                        /*if (data.p2deck[DECK][i].location === "deck") {
                             card.setTexture("cardBack").setDisplaySize(130, 180).setSize(130, 180);
-                        }
+                        }*/
                         card.setDepth(data.p2deck[DECK][i].id);
                         this.playerDeck.push(card);
                     }
@@ -186,31 +202,49 @@ export default class Game extends Phaser.Scene {
                 this.draggedCard.y = 1080 - data.y;
                 break;
             case "drawCard":
-                if (this.id === data.hostID) {
-                    for (var i = 0; i < data.deck.length; i++) {
-                        for (var j = 0; j < this.playerDeck.length; j++) {
-                            if (data.deck[i].uniqueID === this.playerDeck[j].getData("uniqueID")) {
-                                if (data.deck[i].location === "hand") {
-                                    this.playerDeck[j].setTexture(data.deck[i].name).setDisplaySize(130, 180).setSize(130, 180);
-                                    this.playerDeck[j].x = data.deck[i].x;
-                                    this.playerDeck[j].y = data.deck[i].y;
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    for (var i = 0; i < data.deck.length; i++) {
-                        for (var j = 0; j < this.opponentDeck.length; j++) {
-                            if (data.deck[i].uniqueID === this.opponentDeck[j].getData("uniqueID")) {
-                                this.opponentDeck[j].x = 1920 - data.deck[i].x;
-                                this.opponentDeck[j].y = 1080 - data.deck[i].y;
-                            }
-                        }
-                    }
+                copyDeck(this.id, data.hostID, data.p1deck, data.p2deck, this.playerDeck, this.opponentDeck);
+        }
+    }
+}
+
+function copyDeck(localID, hostID, p1deck, p2deck, playerDeck, opponentDeck) {
+    if (localID === hostID) {
+        for (var i = 0; i < p1deck.length; i++) {
+            for (var j = 0; j < playerDeck.length; j++) {
+                if (p1deck[i].uniqueID === playerDeck[j].getData("uniqueID")) {
+                    playerDeck[j].setDepth(p1deck[i].id);
+                    playerDeck[j].x = p1deck[i].x;
+                    playerDeck[j].y = p1deck[i].y;
                 }
-            /*for(var i = 0;i<this.opponentDeck.length;i++){
-                        if(data.uniqueID === )
-                    }*/
+            }
+        }
+        for (var i = 0; i < p2deck.length; i++) {
+            for (var j = 0; j < opponentDeck.length; j++) {
+                if (p2deck[i].uniqueID === opponentDeck[j].getData("uniqueID")) {
+                    opponentDeck[j].setDepth(p2deck[i].id);
+                    opponentDeck[j].x = 1920 - p2deck[i].x;
+                    opponentDeck[j].y = 1080 - p2deck[i].y;
+                }
+            }
+        }
+    } else {
+        for (var i = 0; i < p1deck.length; i++) {
+            for (var j = 0; j < opponentDeck.length; j++) {
+                if (p1deck[i].uniqueID === opponentDeck[j].getData("uniqueID")) {
+                    opponentDeck[j].setDepth(p1deck[i].id);
+                    opponentDeck[j].x = 1920 - p1deck[i].x;
+                    opponentDeck[j].y = 1080 - p1deck[i].y;
+                }
+            }
+        }
+        for (var i = 0; i < p2deck.length; i++) {
+            for (var j = 0; j < playerDeck.length; j++) {
+                if (p2deck[i].uniqueID === playerDeck[j].getData("uniqueID")) {
+                    playerDeck[j].setDepth(p2deck[i].id);
+                    playerDeck[j].x = p2deck[i].x;
+                    playerDeck[j].y = p2deck[i].y;
+                }
+            }
         }
     }
 }

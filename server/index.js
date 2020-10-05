@@ -98,7 +98,6 @@ function messageReceived(socket, d) {
     }
 
     if (data.event === "dragEnd") {
-        console.log(data);
         if (socket === players[0].socket) {
             players[1].socket.send(JSON.stringify({ event: "dragEnd", tempDepth: data.tempDepth, dropped: data.dropped, x: data.x, y: data.y }));
         } else {
@@ -107,7 +106,7 @@ function messageReceived(socket, d) {
     }
 
     if (data.event === "drawCard") {
-        game.drawCard(data.id);
+        game.drawCard(socket.id);
     }
     /*if (data.event === "userinfo") {
         var p = getUserByID(socket.id);

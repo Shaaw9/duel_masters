@@ -24,17 +24,19 @@ module.exports = class Game {
     }
     handOrganizer(hand) {
         var x;
+        var gap = 140;
         if (hand.length <= 8) {
-            x = (1920 - (130 * hand.length + 10 * (hand.length - 1))) / 2;
+            x = 960 - ((hand.length - 1) * 140) / 2;
+        } else {
+            x = 470;
+            gap = 1000 / (hand.length - 1);
         }
         for (var i = 0; i < hand.length; i++) {
-            hand[i].x = x + i * (10 + 130);
-            hand[i].y = 870;
-            /*if (hand === opp[HAND]) {
-                        hand[i].position.y = canvas.height - hand[i].position.y - hand[i].height;
-                        hand[i].position.x = canvas.width - hand[i].position.x - hand[i].width;
-                    }*/
+            hand[i].x = x + i * gap;
+            hand[i].y = 960;
+            hand[i].id = i;
         }
+        return hand;
     }
     drawCard(id) {
         var player;
@@ -49,20 +51,23 @@ module.exports = class Game {
             player.deck[HAND].push(card);
             player.deck[DECK].splice(player.deck[DECK].length - 1, 1);
 
-            this.handOrganizer(player.deck[HAND]);
-            //this.handOrganizer(this.p2.deck[HAND]);
-            var deck = mergeDeck(player);
-            this.broadcast({ event: "drawCard", deck: deck, hostID: player.id });
+            var handToSend = this.handOrganizer(player.deck[HAND]);
+
+            if (player === this.p1) {
+                this.broadcast({ event: "drawCard", p1deck: handToSend, p2deck: [], hostID: this.hostID });
+            } else {
+                this.broadcast({ event: "drawCard", p1deck: [], p2deck: handToSend, hostID: this.hostID });
+            }
         }
     }
     positionDeck() {
         for (var i = 0; i < this.p1.deck[DECK].length; i++) {
-            this.p1.deck[DECK][i].x = 1545 + i * 0.2;
-            this.p1.deck[DECK][i].y = 820 - i * 0.3;
+            this.p1.deck[DECK][i].x = 1610 + i * 0.2;
+            this.p1.deck[DECK][i].y = 870 - i * 0.3;
         }
         for (var i = 0; i < this.p2.deck[DECK].length; i++) {
-            this.p2.deck[DECK][i].x = 1545 + i * 0.2;
-            this.p2.deck[DECK][i].y = 820 - i * 0.3;
+            this.p2.deck[DECK][i].x = 1610 + i * 0.2;
+            this.p2.deck[DECK][i].y = 870 - i * 0.3;
         }
         //this.shuffle(this.cards[DECK]);
         //this.generateStarterCards();
