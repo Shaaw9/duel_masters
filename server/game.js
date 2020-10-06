@@ -15,7 +15,7 @@ module.exports = class Game {
     }
     init() {
         this.positionDeck();
-        this.broadcast({ event: "init", p1deck: this.p1.deck, p2deck: this.p2.deck, hostID: this.hostID });
+        this.broadcast({ event: "init", p1deck: mergeDeck(this.p1), p2deck: mergeDeck(this.p2), hostID: this.hostID });
     }
 
     broadcast(data) {
@@ -69,8 +69,9 @@ module.exports = class Game {
             this.p2.deck[DECK][i].x = 1610 + i * 0.2;
             this.p2.deck[DECK][i].y = 870 - i * 0.3;
         }
-        //this.shuffle(this.cards[DECK]);
-        //this.generateStarterCards();
-        //this.sock.emit("syncDeck", this.cards);
+    }
+
+    syncDecks() {
+        this.broadcast({ event: "syncDecks", p1deck: mergeDeck(this.p1), p2deck: mergeDeck(this.p2), hostID: this.hostID });
     }
 };
