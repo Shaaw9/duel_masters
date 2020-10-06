@@ -91,9 +91,9 @@ function messageReceived(socket, d) {
     }
     if (data.event === "dragStart") {
         if (socket === players[0].socket) {
-            players[1].socket.send(JSON.stringify({ event: "dragStart", uniqueID: data.uniqueID }));
+            players[1].socket.send(JSON.stringify({ event: "dragStart", x: data.x, y: data.y, uniqueID: data.uniqueID }));
         } else {
-            players[0].socket.send(JSON.stringify({ event: "dragStart", uniqueID: data.uniqueID }));
+            players[0].socket.send(JSON.stringify({ event: "dragStart", x: data.x, y: data.y, uniqueID: data.uniqueID }));
         }
     }
 

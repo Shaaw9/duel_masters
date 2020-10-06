@@ -5,11 +5,7 @@ const MANA_ZONE = 3;
 const SHIELD_ZONE = 4;
 const GRAVEYARD = 5;
 
-module.exports = function mergeDeck(player) {
-    var deck = player.deck[HAND].concat(player.deck[DECK])
-        .concat(player.deck[GRAVEYARD])
-        .concat(player.deck[MANA_ZONE])
-        .concat(player.deck[SHIELD_ZONE])
-        .concat(player.deck[BATTLE_ZONE]);
-    return deck;
+module.exports = function mergeDeck(deck) {
+    var copied = deck[HAND].concat(deck[DECK]).concat(deck[GRAVEYARD]).concat(deck[MANA_ZONE]).concat(deck[SHIELD_ZONE]).concat(deck[BATTLE_ZONE]);
+    return copied;
 };

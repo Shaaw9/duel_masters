@@ -1,11 +1,14 @@
 export default class Card {
     constructor(scene) {
-        this.render = (uniqueID) => {
-            let card = scene.add.image(0, 0, "cardBack").setDisplaySize(130, 180).setSize(130, 180).setData({
+        this.render = (uniqueID, playerCard) => {
+            let card = scene.add.image(0, 0, "cardBack").setDisplaySize(130, 180).setData({
                 uniqueID: uniqueID,
+                playerCard: playerCard,
             });
             card.setInteractive();
-            scene.input.setDraggable(card);
+            if (playerCard) {
+                scene.input.setDraggable(card);
+            }
             return card;
         };
     }

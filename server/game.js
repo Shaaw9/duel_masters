@@ -15,7 +15,7 @@ module.exports = class Game {
     }
     init() {
         this.positionDeck();
-        this.broadcast({ event: "init", p1deck: mergeDeck(this.p1), p2deck: mergeDeck(this.p2), hostID: this.hostID });
+        this.broadcast({ event: "init", p1deck: mergeDeck(this.p1.deck), p2deck: mergeDeck(this.p2.deck), hostID: this.hostID });
     }
 
     broadcast(data) {
@@ -54,9 +54,11 @@ module.exports = class Game {
             var handToSend = this.handOrganizer(player.deck[HAND]);
 
             if (player === this.p1) {
-                this.broadcast({ event: "drawCard", p1deck: handToSend, p2deck: [], hostID: this.hostID });
+                this.syncDecks(handToSend, []);
+                //this.broadcast({ event: "drawCard", p1deck: handToSend, p2deck: [], hostID: this.hostID });
             } else {
-                this.broadcast({ event: "drawCard", p1deck: [], p2deck: handToSend, hostID: this.hostID });
+                this.syncDecks([], handToSend);
+                //this.broadcast({ event: "drawCard", p1deck: [], p2deck: handToSend, hostID: this.hostID });
             }
         }
     }
@@ -71,7 +73,7 @@ module.exports = class Game {
         }
     }
 
-    syncDecks() {
-        this.broadcast({ event: "syncDecks", p1deck: mergeDeck(this.p1), p2deck: mergeDeck(this.p2), hostID: this.hostID });
+    syncDecks(p1deck, p2deck) {
+        this.broadcast({ event: "syncDecks", p1deck: p1deck, p2deck: p2deck, hostID: this.hostID });
     }
 };
