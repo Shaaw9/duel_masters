@@ -65,28 +65,44 @@ module.exports = class Game {
         return hand;
     }
     drawCard(id) {
-        var player;
-        if (this.p1.id === id) {
-            player = this.p1;
-        } else {
-            player = this.p2;
-        }
-        if (player.deck[DECK].length > 0) {
-            var card = player.deck[DECK][player.deck[DECK].length - 1];
-            card.location = "hand";
-            player.deck[HAND].push(card);
-            player.deck[DECK].splice(player.deck[DECK].length - 1, 1);
-
-            var handToSend = this.handOrganizer(player.deck[HAND]);
-
-            if (player === this.p1) {
-                this.syncDecks(handToSend, []);
-                //this.broadcast({ event: "drawCard", p1deck: handToSend, p2deck: [], hostID: this.hostID });
+        if (this.turn.drawsLeft > 0) {
+            var player;
+            if (this.p1.id === id) {
+                player = this.p1;
             } else {
-                this.syncDecks([], handToSend);
-                //this.broadcast({ event: "drawCard", p1deck: [], p2deck: handToSend, hostID: this.hostID });
+                player = this.p2;
+            }
+            if (player.deck[DECK].length > 0) {
+                var card = player.deck[DECK][player.deck[DECK].length - 1];
+                card.location = "hand";
+                player.deck[HAND].push(card);
+                player.deck[DECK].splice(player.deck[DECK].length - 1, 1);
+
+                var handToSend = this.handOrganizer(player.deck[HAND]);
+                this.turn.drawsLeft--;
+                if (player === this.p1) {
+                    this.syncDecks(handToSend, []);
+                    //this.broadcast({ event: "drawCard", p1deck: handToSend, p2deck: [], hostID: this.hostID });
+                } else {
+                    this.syncDecks([], handToSend);
+                    //this.broadcast({ event: "drawCard", p1deck: [], p2deck: handToSend, hostID: this.hostID });
+                }
             }
         }
+    }
+    endTurn(id) {
+        var nextPlayer;
+        if (id === this.p1.id) {
+            nextPlayer = this.p2;
+        } else {
+            nextPlayer = this.p1;
+        }
+        this.turn = {
+            id: nextPlayer.id,
+            drawsLeft: 1,
+            canSummon: true,
+            manaLeft: 1,
+        };
     }
 
     dropCard(id, uniqueID, zone) {
@@ -107,6 +123,8 @@ module.exports = class Game {
                         card.x = 115;
                         card.y = 840 + player.deck[MANA_ZONE].length * 20;
                     }
+                    this.turn.manaLeft--;
+                    this.turn.drawsLeft = 0;
                     this.handOrganizer(player.deck[HAND]);
                 }
         }

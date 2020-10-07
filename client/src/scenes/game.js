@@ -76,6 +76,18 @@ export default class Game extends Phaser.Scene {
         });*/
         //let self = this;
         //this.add.image(0, 0, "bg").setOrigin(0, 0); //setting background image
+
+        this.endTurn = this.add
+            .text(50, 500, "END TURN", { fontFamily: 'Arial, "Goudy Bookletter 1911", Times, serif' })
+            .setFontSize(30)
+            .setInteractive();
+
+        this.endTurn.on("pointerup", function () {
+            if (self.turn.id === self.id) {
+                self.socket.send(JSON.stringify({ event: "endTurn" }));
+            }
+        });
+
         this.zone = new Zone(this);
 
         this.MANA_ZONE = this.zone.renderZone(197.5, 920, 395, 320);
@@ -97,7 +109,7 @@ export default class Game extends Phaser.Scene {
         this.outline = this.zone.renderOutline(this.DEAD_ZONE);
 
         this.input.on("dragstart", function (pointer, gameObject) {
-            if (gameObject.getData("location") === "hand" && gameObject.getData("playerCard")) {
+            if (gameObject.getData("location") === "hand" && gameObject.getData("playerCard") && self.turn.id === self.id) {
                 this.tempDepth = gameObject.depth;
                 self.children.bringToTop(gameObject);
                 gameObject.x = self.input.mousePointer.x;
@@ -107,24 +119,22 @@ export default class Game extends Phaser.Scene {
         });
 
         this.input.on("dragend", function (pointer, gameObject, dropped) {
-            if (gameObject.getData("location") === "hand" && gameObject.getData("playerCard")) {
-                gameObject.setDepth(this.tempDepth);
-                if (!dropped) {
-                    gameObject.x = gameObject.input.dragStartX;
-                    gameObject.y = gameObject.input.dragStartY;
-                    self.socket.send(
-                        JSON.stringify({
-                            event: "dragEnd",
-                            tempDepth: this.tempDepth,
-                            x: gameObject.input.dragStartX,
-                            y: gameObject.input.dragStartY,
-                        })
-                    );
-                }
+            gameObject.setDepth(this.tempDepth);
+            if (!dropped) {
+                gameObject.x = gameObject.input.dragStartX;
+                gameObject.y = gameObject.input.dragStartY;
+                self.socket.send(
+                    JSON.stringify({
+                        event: "dragEnd",
+                        tempDepth: this.tempDepth,
+                        x: gameObject.input.dragStartX,
+                        y: gameObject.input.dragStartY,
+                    })
+                );
             }
         });
         this.input.on("drag", function (pointer, gameObject, dragX, dragY) {
-            if (gameObject.getData("location") === "hand" && gameObject.getData("playerCard")) {
+            if (gameObject.getData("location") === "hand" && gameObject.getData("playerCard") && self.turn.id === self.id) {
                 gameObject.x = self.input.mousePointer.x;
                 gameObject.y = self.input.mousePointer.y;
                 self.socket.send(JSON.stringify({ event: "drag", x: gameObject.x, y: gameObject.y, uniqueID: gameObject.getData("uniqueID") }));
@@ -132,7 +142,7 @@ export default class Game extends Phaser.Scene {
         });
 
         this.input.on("gameobjectup", function (pointer, gameObject) {
-            if (gameObject.getData("location") === "deck" && gameObject.getData("playerCard")) {
+            if (gameObject.getData("location") === "deck" && gameObject.getData("playerCard") && self.turn.id === self.id) {
                 self.socket.send(JSON.stringify({ event: "drawCard" }));
             }
             if (this.scaledImage != null) this.scaledImage.destroy();
@@ -150,6 +160,14 @@ export default class Game extends Phaser.Scene {
                     .setDisplaySize(195, 270)
                     .setDepth(100);
             }
+            if (pointer.rightButtonDown() && gameObject.getData("location") === "mana" && gameObject.getData("playerCard")) {
+                //send untap request
+                gameObject.setTint();
+            }
+            if (pointer.leftButtonDown() && gameObject.getData("location") === "mana" && gameObject.getData("playerCard")) {
+                //send tap request
+                gameObject.setTint(0x707070);
+            }
         });
 
         this.input.on("gameobjectover", function (pointer, gameObject) {
@@ -159,6 +177,14 @@ export default class Game extends Phaser.Scene {
                     .setOrigin(0.5, 1)
                     .setDisplaySize(195, 270)
                     .setDepth(100);
+            }
+            if (pointer.rightButtonDown() && gameObject.getData("location") === "mana" && gameObject.getData("playerCard")) {
+                //send untap request
+                gameObject.setTint();
+            }
+            if (pointer.leftButtonDown() && gameObject.getData("location") === "mana" && gameObject.getData("playerCard")) {
+                //send tap request
+                gameObject.setTint(0x707070);
             }
         });
 
@@ -177,11 +203,8 @@ export default class Game extends Phaser.Scene {
             self.socket.send(
                 JSON.stringify({
                     event: "drop",
-                    //tempDepth: this.tempDepth,
                     uniqueID: gameObject.getData("uniqueID"),
                     zone: zone,
-                    //x: gameObject.input.dragStartX,
-                    //y: gameObject.input.dragStartY,
                 })
             );
         });
@@ -323,6 +346,10 @@ export default class Game extends Phaser.Scene {
                 break;
             case "syncDecks":
                 this.syncDeck(data);
+                break;
+            case "endTurn":
+                this.turn = data.turn;
+                console.log(this.turn);
                 break;
         }
     }

@@ -110,6 +110,9 @@ function messageReceived(socket, d) {
         console.log(data);
         game.dropCard(socket.id, data.uniqueID, data.zone);
     }
+    if (data.event === "endTurn") {
+        game.endTurn(socket.id);
+    }
     /*if (data.event === "userinfo") {
         var p = getUserByID(socket.id);
         if (p !== null) {
