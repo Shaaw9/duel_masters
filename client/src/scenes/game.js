@@ -1,5 +1,6 @@
 import { GameObjects } from "phaser";
 import Card from "../helpers/card";
+import Zone from "../helpers/zone";
 
 const DECK = 0;
 const HAND = 1;
@@ -34,6 +35,12 @@ export default class Game extends Phaser.Scene {
         this.draggedCard;
         this.input.mouse.disableContextMenu();
         this.scaledImage;
+        this.turn = {
+            id: null,
+            drawsLeft: 1,
+            canSummon: true,
+            manaLeft: 1,
+        };
         /*this.rightClickDown = false;
         this.input.on(
             "pointerdown",
@@ -54,7 +61,7 @@ export default class Game extends Phaser.Scene {
             },
             this
         );*/
-        /* this.MANA_ZONE = this.add.zone(197.5, 920, 395, 320).setRectangleDropZone(395, 320).setInteractive();
+        /* this.MANA_ZONE = this.add.zone(197.5, 920, 395, 320).setRectangledropZone(395, 320).setInteractive();
         this.graphics = this.add.graphics();
         this.graphics.lineStyle(2, 0xffff00);
         this.graphics.strokeRect(
@@ -69,8 +76,8 @@ export default class Game extends Phaser.Scene {
         });*/
         //let self = this;
         //this.add.image(0, 0, "bg").setOrigin(0, 0); //setting background image
-        /*this.zone = new Zone(this);
-        
+        this.zone = new Zone(this);
+
         this.MANA_ZONE = this.zone.renderZone(197.5, 920, 395, 320);
         this.outline = this.zone.renderOutline(this.MANA_ZONE);
 
@@ -85,78 +92,110 @@ export default class Game extends Phaser.Scene {
 
         this.DECK_ZONE = this.zone.renderZone(1625, 920, 200, 320);
         this.outline = this.zone.renderOutline(this.DECK_ZONE);
-        
 
         this.DEAD_ZONE = this.zone.renderZone(1822.5, 920, 195, 320);
-        this.outline = this.zone.renderOutline(this.DEAD_ZONE);*/
-        this.input.on("dragstart", function (pointer, GameObject) {
-            if (GameObject.getData("location") === "hand" && GameObject.getData("playerCard")) {
-                this.tempDepth = GameObject.depth;
-                self.children.bringToTop(GameObject);
-                GameObject.x = self.input.mousePointer.x;
-                GameObject.y = self.input.mousePointer.y;
-                self.socket.send(JSON.stringify({ event: "dragStart", x: GameObject.x, y: GameObject.y, uniqueID: GameObject.getData("uniqueID") }));
+        this.outline = this.zone.renderOutline(this.DEAD_ZONE);
+
+        this.input.on("dragstart", function (pointer, gameObject) {
+            if (gameObject.getData("location") === "hand" && gameObject.getData("playerCard")) {
+                this.tempDepth = gameObject.depth;
+                self.children.bringToTop(gameObject);
+                gameObject.x = self.input.mousePointer.x;
+                gameObject.y = self.input.mousePointer.y;
+                self.socket.send(JSON.stringify({ event: "dragStart", x: gameObject.x, y: gameObject.y, uniqueID: gameObject.getData("uniqueID") }));
             }
         });
 
-        this.input.on("dragend", function (pointer, GameObject, dropped) {
-            if (GameObject.getData("location") === "hand" && GameObject.getData("playerCard")) {
-                self.socket.send(
-                    JSON.stringify({
-                        event: "dragEnd",
-                        tempDepth: this.tempDepth,
-                        dropped: dropped,
-                        x: GameObject.input.dragStartX,
-                        y: GameObject.input.dragStartY,
-                    })
-                );
-                GameObject.setDepth(this.tempDepth);
+        this.input.on("dragend", function (pointer, gameObject, dropped) {
+            if (gameObject.getData("location") === "hand" && gameObject.getData("playerCard")) {
+                gameObject.setDepth(this.tempDepth);
                 if (!dropped) {
-                    GameObject.x = GameObject.input.dragStartX;
-                    GameObject.y = GameObject.input.dragStartY;
+                    gameObject.x = gameObject.input.dragStartX;
+                    gameObject.y = gameObject.input.dragStartY;
+                    self.socket.send(
+                        JSON.stringify({
+                            event: "dragEnd",
+                            tempDepth: this.tempDepth,
+                            x: gameObject.input.dragStartX,
+                            y: gameObject.input.dragStartY,
+                        })
+                    );
                 }
             }
         });
-        this.input.on("drag", function (pointer, GameObject, dragX, dragY) {
-            if (GameObject.getData("location") === "hand" && GameObject.getData("playerCard")) {
-                GameObject.x = self.input.mousePointer.x;
-                GameObject.y = self.input.mousePointer.y;
-                self.socket.send(JSON.stringify({ event: "drag", x: GameObject.x, y: GameObject.y, uniqueID: GameObject.getData("uniqueID") }));
+        this.input.on("drag", function (pointer, gameObject, dragX, dragY) {
+            if (gameObject.getData("location") === "hand" && gameObject.getData("playerCard")) {
+                gameObject.x = self.input.mousePointer.x;
+                gameObject.y = self.input.mousePointer.y;
+                self.socket.send(JSON.stringify({ event: "drag", x: gameObject.x, y: gameObject.y, uniqueID: gameObject.getData("uniqueID") }));
             }
         });
 
-        this.input.on("gameobjectup", function (pointer, GameObject) {
-            if (GameObject.getData("location") === "deck" && GameObject.getData("playerCard")) {
-                self.socket.send(JSON.stringify({ event: "drawCard", id: self.id }));
+        this.input.on("gameobjectup", function (pointer, gameObject) {
+            if (gameObject.getData("location") === "deck" && gameObject.getData("playerCard")) {
+                self.socket.send(JSON.stringify({ event: "drawCard" }));
             }
             if (this.scaledImage != null) this.scaledImage.destroy();
         });
 
-        this.input.on("gameobjectout", function (pointer, GameObject) {
+        this.input.on("gameobjectout", function (pointer, gameObject) {
             if (this.scaledImage != null) this.scaledImage.destroy();
         });
 
-        this.input.on("gameobjectdown", function (pointer, GameObject) {
-            if (pointer.rightButtonDown() && GameObject.getData("location") === "hand" && GameObject.getData("playerCard")) {
+        this.input.on("gameobjectdown", function (pointer, gameObject) {
+            if (pointer.rightButtonDown() && gameObject.getData("location") === "hand" && gameObject.getData("playerCard")) {
                 this.scaledImage = self.add
-                    .image(GameObject.x, GameObject.y - 100, GameObject.texture.key)
+                    .image(gameObject.x, gameObject.y - 100, gameObject.texture.key)
                     .setOrigin(0.5, 1)
                     .setDisplaySize(195, 270)
                     .setDepth(100);
             }
         });
 
-        this.input.on("gameobjectover", function (pointer, GameObject) {
-            if (pointer.rightButtonDown() && GameObject.getData("location") === "hand" && GameObject.getData("playerCard")) {
+        this.input.on("gameobjectover", function (pointer, gameObject) {
+            if (pointer.rightButtonDown() && gameObject.getData("location") === "hand" && gameObject.getData("playerCard")) {
                 this.scaledImage = self.add
-                    .image(GameObject.x, GameObject.y - 100, GameObject.texture.key)
+                    .image(pointer, gameObject.y - 100, gameObject.texture.key)
                     .setOrigin(0.5, 1)
                     .setDisplaySize(195, 270)
                     .setDepth(100);
             }
+        });
+
+        this.input.on("drop", function (pointer, gameObject, dropZone) {
+            //if (this.id === self.turn.id) {
+            var zone;
+            switch (dropZone) {
+                case self.MANA_ZONE:
+                    zone = "MANA_ZONE";
+                    break;
+                default:
+                    gameObject.x = gameObject.input.dragStartX;
+                    gameObject.y = gameObject.input.dragStartY;
+                    break;
+            }
+            self.socket.send(
+                JSON.stringify({
+                    event: "drop",
+                    //tempDepth: this.tempDepth,
+                    uniqueID: gameObject.getData("uniqueID"),
+                    zone: zone,
+                    //x: gameObject.input.dragStartX,
+                    //y: gameObject.input.dragStartY,
+                })
+            );
         });
     }
+    syncTurn(data) {
+        this.turn = {
+            id: data.turn.id,
+            drawsLeft: data.turn.drawsLeft,
+            canSummon: data.turn.canSummon,
+            manaLeft: data.turn.manaLeft,
+        };
+    }
     syncDeck(data) {
+        this.syncTurn(data);
         if (data.hostID === this.id) {
             for (var i = 0; i < data.p1deck.length; i++) {
                 for (var j = 0; j < this.playerDeck.length; j++) {
@@ -171,6 +210,9 @@ export default class Game extends Phaser.Scene {
                         if (data.p1deck[i].location === "hand") {
                             this.playerDeck[j].setTexture(data.p1deck[i].name).setDisplaySize(130, 180).setInteractive();
                         }
+                        if (data.p1deck[i].location === "mana") {
+                            this.playerDeck[j].setTexture(data.p1deck[i].name).setDisplaySize(130, 180).setInteractive().setAngle(180);
+                        }
                     }
                 }
             }
@@ -183,6 +225,9 @@ export default class Game extends Phaser.Scene {
                         this.opponentDeck[j].setData({ location: data.p2deck[i].location });
                         if (data.p2deck[i].location === "deck" || data.p2deck[i].location === "hand") {
                             this.opponentDeck[j].setTexture("cardBack").setDisplaySize(130, 180).setAngle(180);
+                        }
+                        if (data.p2deck[i].location === "mana") {
+                            this.opponentDeck[j].setTexture(data.p2deck[i].name).setDisplaySize(130, 180).setInteractive().setAngle(0);
                         }
                     }
                 }
@@ -197,6 +242,9 @@ export default class Game extends Phaser.Scene {
                         this.opponentDeck[j].setData({ location: data.p1deck[i].location });
                         if (data.p1deck[i].location === "deck") {
                             this.opponentDeck[j].setTexture("cardBack").setDisplaySize(130, 180).setAngle(180);
+                        }
+                        if (data.p1deck[i].location === "mana") {
+                            this.opponentDeck[j].setTexture(data.p1deck[i].name).setDisplaySize(130, 180).setInteractive().setAngle(0);
                         }
                     }
                 }
@@ -214,6 +262,9 @@ export default class Game extends Phaser.Scene {
                         if (data.p2deck[i].location === "hand") {
                             this.playerDeck[j].setTexture(data.p2deck[i].name).setDisplaySize(130, 180);
                         }
+                        if (data.p2deck[i].location === "mana") {
+                            this.playerDeck[j].setTexture(data.p2deck[i].name).setDisplaySize(130, 180).setInteractive().setAngle(180);
+                        }
                     }
                 }
             }
@@ -229,6 +280,7 @@ export default class Game extends Phaser.Scene {
                 this.id = data.id;
                 break;
             case "init":
+                this.syncTurn(data);
                 if (this.id === data.hostID) {
                     for (var i = 0; i < data.p1deck.length; i++) {
                         this.playerDeck.push(new Card(this).render(data.p1deck[i].uniqueID, true));

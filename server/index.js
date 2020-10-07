@@ -4,6 +4,7 @@ const uuid = require("uuid");
 const Player = require("./player");
 const Card = require("./card");
 const Game = require("./game");
+const mergeDeck = require("./functions");
 
 //const Card = require("./card");
 //const Player = require("./player");
@@ -98,15 +99,16 @@ function messageReceived(socket, d) {
     }
 
     if (data.event === "dragEnd") {
-        if (socket === players[0].socket) {
-            players[1].socket.send(JSON.stringify({ event: "dragEnd", tempDepth: data.tempDepth, dropped: data.dropped, x: data.x, y: data.y }));
-        } else {
-            players[0].socket.send(JSON.stringify({ event: "dragEnd", tempDepth: data.tempDepth, dropped: data.dropped, x: data.x, y: data.y }));
-        }
+        game.syncDecks(mergeDeck(game.p1.deck), mergeDeck(game.p2.deck));
     }
 
     if (data.event === "drawCard") {
         game.drawCard(socket.id);
+    }
+
+    if (data.event === "drop") {
+        console.log(data);
+        game.dropCard(socket.id, data.uniqueID, data.zone);
     }
     /*if (data.event === "userinfo") {
         var p = getUserByID(socket.id);
